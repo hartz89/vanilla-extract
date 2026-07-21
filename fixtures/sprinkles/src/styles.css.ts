@@ -125,6 +125,14 @@ const unconditionalProperties = defineProperties({
       },
     },
   },
+  aliases: {
+    // `danger` is a semantic alias for `red`. Because aliases reuse the
+    // target value's class, `color: 'danger'` emits no extra CSS and
+    // resolves to the exact same class as `color: 'red'`.
+    color: {
+      danger: 'red',
+    },
+  },
 });
 
 const unconditionalLayerProperties = defineProperties({
@@ -157,7 +165,7 @@ export const preComposedSprinkles = sprinkles({
   paddingTop: 'small',
   background: 'red',
   backgroundOpacity: { mobile: 0.1, tablet: 0.2, desktop: 0.3 },
-  color: 'red',
+  color: 'danger',
   textOpacity: 0.8,
   border: 'light',
   borderColor: { document: 'primary', unscoped: 'secondary' },

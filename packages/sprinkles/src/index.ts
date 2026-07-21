@@ -48,6 +48,23 @@ type ShorthandOptions<
   shorthands: Shorthands;
 };
 
+// The set of valid value names for a single property, matching the keys
+// produced by `Values` below.
+type PropertyValueKeys<Property> =
+  Property extends ReadonlyArray<any>
+    ? Property[number]
+    : Property extends Array<any>
+      ? Property[number]
+      : keyof Property;
+
+// Maps each property to a set of aliases, where every alias points at an
+// existing value name of that property.
+type Aliases<Properties extends AtomicProperties> = {
+  [Property in keyof Properties]?: {
+    [aliasName: string]: PropertyValueKeys<Properties[Property]>;
+  };
+};
+
 type UnconditionalAtomicOptions<Properties extends AtomicProperties> = {
   '@layer'?: string;
   properties: Properties;
@@ -72,12 +89,38 @@ type ConditionalAtomicOptions<
 };
 
 type Values<Property, Result> = {
-  [Value in Property extends ReadonlyArray<any>
-    ? Property[number]
-    : Property extends Array<any>
-      ? Property[number]
-      : keyof Property]: Result;
+  [Value in PropertyValueKeys<Property>]: Result;
 };
+
+// Adds alias value names to the generated styles. Each alias re-uses the
+// exact entry type of the value it points at, so it inherits the same
+// `defaultClass`/`conditions` shape without generating a new utility class.
+type AliasAtomicStyles<
+  BaseStyles extends {
+    styles: Record<string, { values: Record<string, any> }>;
+  },
+  TAliases,
+> = {
+  styles: {
+    [Property in keyof TAliases]: {
+      values: {
+        [Alias in keyof TAliases[Property]]: Property extends keyof BaseStyles['styles']
+          ? BaseStyles['styles'][Property]['values'][keyof BaseStyles['styles'][Property]['values']]
+          : never;
+      };
+    };
+  };
+};
+
+// Intersects a base styles type with its alias value names. Alias entries are
+// merged into the same `values` object, so they appear alongside real values
+// in prop autocomplete.
+type WithAliases<
+  BaseStyles extends {
+    styles: Record<string, { values: Record<string, any> }>;
+  },
+  TAliases,
+> = BaseStyles & AliasAtomicStyles<BaseStyles, TAliases>;
 
 type UnconditionalAtomicStyles<Properties extends AtomicProperties> = {
   conditions: never;
@@ -158,15 +201,21 @@ export function defineProperties<
   Conditions extends BaseConditions,
   Shorthands extends { [shorthandName: string]: Array<keyof Properties> },
   DefaultCondition extends keyof Conditions | Array<keyof Conditions> | false,
+  TAliases extends Aliases<Properties> = {},
 >(
   options: ConditionalAtomicOptions<Properties, Conditions, DefaultCondition> &
     ShorthandOptions<Properties, Shorthands> &
-    ResponsiveArrayOptions<Conditions, ResponsiveLength>,
-): ConditionalWithResponsiveArrayAtomicStyles<
-  Properties,
-  Conditions,
-  ResponsiveLength,
-  DefaultCondition
+    ResponsiveArrayOptions<Conditions, ResponsiveLength> & {
+      aliases?: TAliases;
+    },
+): WithAliases<
+  ConditionalWithResponsiveArrayAtomicStyles<
+    Properties,
+    Conditions,
+    ResponsiveLength,
+    DefaultCondition
+  >,
+  TAliases
 > &
   ShorthandAtomicStyles<Shorthands>;
 // Conditional + Shorthands
@@ -175,10 +224,16 @@ export function defineProperties<
   Conditions extends BaseConditions,
   Shorthands extends { [shorthandName: string]: Array<keyof Properties> },
   DefaultCondition extends keyof Conditions | Array<keyof Conditions> | false,
+  TAliases extends Aliases<Properties> = {},
 >(
   options: ConditionalAtomicOptions<Properties, Conditions, DefaultCondition> &
-    ShorthandOptions<Properties, Shorthands>,
-): ConditionalAtomicStyles<Properties, Conditions, DefaultCondition> &
+    ShorthandOptions<Properties, Shorthands> & {
+      aliases?: TAliases;
+    },
+): WithAliases<
+  ConditionalAtomicStyles<Properties, Conditions, DefaultCondition>,
+  TAliases
+> &
   ShorthandAtomicStyles<Shorthands>;
 // Conditional + ResponsiveArray
 export function defineProperties<
@@ -186,35 +241,60 @@ export function defineProperties<
   Conditions extends BaseConditions,
   ResponsiveLength extends number,
   DefaultCondition extends keyof Conditions | Array<keyof Conditions> | false,
+  TAliases extends Aliases<Properties> = {},
 >(
   options: ConditionalAtomicOptions<Properties, Conditions, DefaultCondition> &
-    ResponsiveArrayOptions<Conditions, ResponsiveLength>,
-): ConditionalWithResponsiveArrayAtomicStyles<
-  Properties,
-  Conditions,
-  ResponsiveLength,
-  DefaultCondition
+    ResponsiveArrayOptions<Conditions, ResponsiveLength> & {
+      aliases?: TAliases;
+    },
+): WithAliases<
+  ConditionalWithResponsiveArrayAtomicStyles<
+    Properties,
+    Conditions,
+    ResponsiveLength,
+    DefaultCondition
+  >,
+  TAliases
 >;
 // Conditional
 export function defineProperties<
   Properties extends AtomicProperties,
   Conditions extends BaseConditions,
   DefaultCondition extends keyof Conditions | Array<keyof Conditions> | false,
+  TAliases extends Aliases<Properties> = {},
 >(
-  options: ConditionalAtomicOptions<Properties, Conditions, DefaultCondition>,
-): ConditionalAtomicStyles<Properties, Conditions, DefaultCondition>;
+  options: ConditionalAtomicOptions<
+    Properties,
+    Conditions,
+    DefaultCondition
+  > & {
+    aliases?: TAliases;
+  },
+): WithAliases<
+  ConditionalAtomicStyles<Properties, Conditions, DefaultCondition>,
+  TAliases
+>;
 // Unconditional + Shorthands
 export function defineProperties<
   Properties extends AtomicProperties,
   Shorthands extends { [shorthandName: string]: Array<keyof Properties> },
+  TAliases extends Aliases<Properties> = {},
 >(
   options: UnconditionalAtomicOptions<Properties> &
-    ShorthandOptions<Properties, Shorthands>,
-): UnconditionalAtomicStyles<Properties> & ShorthandAtomicStyles<Shorthands>;
+    ShorthandOptions<Properties, Shorthands> & {
+      aliases?: TAliases;
+    },
+): WithAliases<UnconditionalAtomicStyles<Properties>, TAliases> &
+  ShorthandAtomicStyles<Shorthands>;
 // Unconditional
-export function defineProperties<Properties extends AtomicProperties>(
-  options: UnconditionalAtomicOptions<Properties>,
-): UnconditionalAtomicStyles<Properties>;
+export function defineProperties<
+  Properties extends AtomicProperties,
+  TAliases extends Aliases<Properties> = {},
+>(
+  options: UnconditionalAtomicOptions<Properties> & {
+    aliases?: TAliases;
+  },
+): WithAliases<UnconditionalAtomicStyles<Properties>, TAliases>;
 export function defineProperties(options: any): any {
   let styles: any =
     'shorthands' in options
@@ -351,6 +431,39 @@ export function defineProperties(options: any): any {
       for (const valueName in property) {
         const value = property[valueName];
         processValue(valueName, value);
+      }
+    }
+  }
+
+  // Aliases point a new value name at an existing value's already-generated
+  // classes. They re-use the same entry object, so no additional utility
+  // classes are created.
+  if ('aliases' in options) {
+    for (const key in options.aliases) {
+      const propertyAliases = options.aliases[key];
+
+      if (process.env.NODE_ENV !== 'production') {
+        if (!styles[key]?.values) {
+          throw new Error(
+            `Sprinkles: alias references unknown property "${key}"`,
+          );
+        }
+      }
+
+      for (const aliasName in propertyAliases) {
+        const targetValueName = propertyAliases[aliasName];
+
+        if (process.env.NODE_ENV !== 'production') {
+          if (!(targetValueName in styles[key].values)) {
+            throw new Error(
+              `Sprinkles: alias "${key}.${aliasName}" references unknown value "${String(
+                targetValueName,
+              )}"`,
+            );
+          }
+        }
+
+        styles[key].values[aliasName] = styles[key].values[targetValueName];
       }
     }
   }

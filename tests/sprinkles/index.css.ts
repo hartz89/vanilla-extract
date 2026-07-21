@@ -126,3 +126,42 @@ export const shorthandsWithZeroValues = defineProperties({
     mt: ['marginTop'],
   },
 });
+
+// Defined last so that adding these configs doesn't shift the generated class
+// hashes (and therefore the inline snapshots) of the properties above.
+export const propertiesWithAliases = defineProperties({
+  properties: {
+    color: {
+      'gray-500': '#6B7280',
+      'red-500': '#EF4444',
+      'green-300': '#6EE7B7',
+    },
+  },
+  aliases: {
+    color: {
+      primary: 'green-300',
+      danger: 'red-500',
+    },
+  },
+});
+
+export const conditionalPropertiesWithAliases = defineProperties({
+  defaultCondition: 'mobile',
+  conditions: {
+    mobile: {},
+    tablet: {},
+    desktop: {
+      '@media': 'screen and (min-width: 786px)',
+    },
+  },
+  responsiveArray: ['mobile', 'tablet', 'desktop'],
+  properties: {
+    paddingTop: spacing,
+  },
+  aliases: {
+    paddingTop: {
+      cozy: 'medium',
+      roomy: 'large',
+    },
+  },
+});

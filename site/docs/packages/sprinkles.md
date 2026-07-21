@@ -196,7 +196,7 @@ globalStyle(`${container} *`, {
 
 ## defineProperties
 
-Defines a collection of utility classes with [properties](#properties), [conditions](#conditions) and [shorthands.](#shorthands)
+Defines a collection of utility classes with [properties](#properties), [conditions](#conditions), [shorthands](#shorthands) and [aliases.](#aliases)
 
 If you need to scope different conditions to different properties (e.g. some properties support breakpoints, some support light mode and dark mode, some are unconditional), you can provide as many collections of properties to [createSprinkles](#createsprinkles) as you like.
 
@@ -381,6 +381,41 @@ const responsiveProperties = defineProperties({
     paddingY: ['paddingTop', 'paddingBottom']
   }
 });
+```
+
+### aliases
+
+Gives an existing property value one or more additional names. Unlike [shorthands](#shorthands), which map a single prop to multiple underlying properties, an alias renames a value _within_ a single property. This is useful for semantic token naming, where a name like `primary` should point to an existing scale value like `blue500`.
+
+Aliases reuse the target value's class rather than generating a new one, so they add no extra CSS. They appear alongside real values in autocomplete and work with conditions and responsive arrays.
+
+```ts
+// sprinkles.css.ts
+import { defineProperties } from '@vanilla-extract/sprinkles';
+import { vars } from './vars.css.ts';
+
+const colorProperties = defineProperties({
+  properties: {
+    color: vars.color,
+    background: vars.color
+  },
+  aliases: {
+    color: {
+      primary: 'blue500',
+      danger: 'red600'
+    },
+    background: {
+      surface: 'gray100'
+    }
+  }
+});
+```
+
+An alias target must be an existing value of the same property.
+
+```ts
+sprinkles({ color: 'primary' });
+// Resolves to the same class as `sprinkles({ color: 'blue500' })`
 ```
 
 ### conditions
