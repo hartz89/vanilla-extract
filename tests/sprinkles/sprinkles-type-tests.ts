@@ -15,6 +15,8 @@ import {
   conditionalProperties,
   conditionalPropertiesWithoutDefaultCondition,
   conditionalPropertiesWithoutResponsiveArray,
+  propertiesWithAliases,
+  conditionalPropertiesWithAliases,
 } from './index.css';
 
 const noop = (..._args: Array<any>) => {};
@@ -277,4 +279,61 @@ const noop = (..._args: Array<any>) => {};
     ['row'];
 
   noop(invalidRequiredValue);
+};
+
+// Aliases
+// oxlint-disable-next-line no-unused-expressions
+() => {
+  const sprinkles = createSprinkles(
+    propertiesWithAliases,
+    conditionalPropertiesWithAliases,
+  );
+
+  // Valid - aliases are usable as first-class values alongside real values
+  sprinkles({ color: 'primary' });
+  sprinkles({ color: 'danger' });
+  sprinkles({ color: 'green-300' });
+
+  // @ts-expect-error - Unknown value that is neither a real value nor an alias
+  sprinkles({ color: 'accent' });
+
+  // Valid - aliases work with conditions and responsive arrays
+  sprinkles({ paddingTop: 'cozy' });
+  sprinkles({ paddingTop: { desktop: 'roomy' } });
+  sprinkles({ paddingTop: ['cozy', 'roomy'] });
+
+  sprinkles({
+    // @ts-expect-error - Unknown alias in a conditional value
+    paddingTop: { desktop: 'huge' },
+  });
+
+  // Valid - alias target is an existing value of the property
+  defineProperties({
+    properties: {
+      color: { red: '#f00', blue: '#00f' },
+    },
+    aliases: {
+      color: { primary: 'blue' },
+    },
+  });
+
+  defineProperties({
+    properties: {
+      color: { red: '#f00', blue: '#00f' },
+    },
+    aliases: {
+      // @ts-expect-error - Alias target must be an existing value name
+      color: { primary: 'green' },
+    },
+  });
+
+  defineProperties({
+    properties: {
+      color: { red: '#f00', blue: '#00f' },
+    },
+    aliases: {
+      // @ts-expect-error - Alias key must be an existing property
+      background: { primary: 'red' },
+    },
+  });
 };

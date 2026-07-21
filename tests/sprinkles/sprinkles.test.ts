@@ -14,6 +14,8 @@ import {
   conditionalPropertiesWithoutDefaultCondition,
   conditionalPropertiesWithoutResponsiveArray,
   shorthandsWithZeroValues,
+  propertiesWithAliases,
+  conditionalPropertiesWithAliases,
 } from './index.css';
 
 describe('sprinkles', () => {
@@ -287,6 +289,45 @@ describe('sprinkles', () => {
       ).toMatchInlineSnapshot(
         `"sprinkles_paddingTop_large__1kw4bre25 sprinkles_paddingBottom_large__1kw4bre28 sprinkles_paddingLeft_small__1kw4bre1x sprinkles_paddingRight_small__1kw4bre20"`,
       );
+    });
+
+    it('should resolve an alias to the same class as its target value', () => {
+      const sprinkles = createSprinkles(propertiesWithAliases);
+
+      // The alias re-uses the target value's class rather than minting a new
+      // one, so `primary` produces the exact same output as `green-300`.
+      expect(sprinkles({ color: 'primary' })).toBe(
+        sprinkles({ color: 'green-300' }),
+      );
+      // The generated class is the target value's class, not a new one.
+      expect(sprinkles({ color: 'primary' })).toContain('color_green-300');
+      expect(sprinkles({ color: 'danger' })).toBe(
+        sprinkles({ color: 'red-500' }),
+      );
+    });
+
+    it('should resolve aliases on conditional properties', () => {
+      const sprinkles = createSprinkles(conditionalPropertiesWithAliases);
+
+      expect(sprinkles({ paddingTop: { desktop: 'cozy' } })).toBe(
+        sprinkles({ paddingTop: { desktop: 'medium' } }),
+      );
+    });
+
+    it('should resolve aliases within a responsive array', () => {
+      const sprinkles = createSprinkles(conditionalPropertiesWithAliases);
+
+      expect(sprinkles({ paddingTop: ['cozy', 'roomy'] })).toBe(
+        sprinkles({ paddingTop: ['medium', 'large'] }),
+      );
+    });
+
+    it('should not treat aliases as a separate property', () => {
+      const sprinkles = createSprinkles(propertiesWithAliases);
+
+      // Aliases live inside `color`'s values, not as their own props.
+      expect(sprinkles.properties.has('color')).toBe(true);
+      expect(sprinkles.properties.has('primary' as any)).toBe(false);
     });
 
     it('should provide a static set of properties on the sprinkles function', () => {
